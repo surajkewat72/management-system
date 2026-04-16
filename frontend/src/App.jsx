@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import Users from './pages/Users';
 import DashboardLayout from './layouts/DashboardLayout';
 
 const ProtectedRoute = ({ children }) => {
@@ -16,11 +17,7 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
-// Placeholder components for new pages
-const Users = () => <div>Users Management Page (Coming Soon)</div>;
 const Profile = () => <div>User Profile Page (Coming Soon)</div>;
-
-function App() {
   return (
     <AuthProvider>
       <Router>
