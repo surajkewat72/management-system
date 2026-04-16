@@ -1,83 +1,66 @@
 const User = require('../models/User');
+const asyncHandler = require('../utils/asyncHandler');
 
 // @desc    Get all users (with pagination, search, filter)
 // @route   GET /api/users
 // @access  Private/Admin/Manager
-const getUsers = async (req, res) => {
-  try {
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
+const getUsers = asyncHandler(async (req, res) => {
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
 
-    const query = {};
+  const query = {};
 
-    // Search by name or email
-    if (req.query.search) {
-      query.$or = [
-        { name: { $regex: req.query.search, $options: 'i' } },
-        { email: { $regex: req.query.search, $options: 'i' } },
-      ];
-    }
-
-    // Filter by role
-    if (req.query.role) {
-      query.role = req.query.role;
-    }
-
-    // Filter by status
-    if (req.query.status) {
-      query.status = req.query.status;
-    }
-
-    // If Manager, they can see all but restricted in modification
-    // (We could filter out Admins for Managers, but usually they see them and just can't touch them)
-    
-    const count = await User.countDocuments(query);
-    const users = await User.find(query)
-      .limit(limit)
-      .skip(skip)
-      .sort({ createdAt: -1 });
-
-    res.status(200).json({
-      users,
-      page,
-      pages: Math.ceil(count / limit),
-      total: count,
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+  if (req.query.search) {
+    query.$or = [
+      { name: { $regex: req.query.search, $options: 'i' } },
+      { email: { $regex: req.query.search, $options: 'i' } },
+    ];
   }
-};
+
+  if (req.query.role) query.role = req.query.role;
+  if (req.query.status) query.status = req.query.status;
+  
+  const count = await User.countDocuments(query);
+  const users = await User.find(query)
+    .limit(limit)
+    .skip(skip)
+    .sort({ createdAt: -1 });
+
+  res.status(200).json({
+    users,
+    page,
+    pages: Math.ceil(count / limit),
+    total: count,
+  });
+});
 
 // @desc    Get user by ID
 // @route   GET /api/users/:id
 // @access  Private/Admin/Manager
-const getUserById = async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id)
-      .populate('createdBy', 'name')
-      .populate('updatedBy', 'name');
+const getUserById = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id)
+    .populate('createdBy', 'name')
+    .populate('updatedBy', 'name');
 
-    if (user) {
-      res.status(200).json(user);
-    } else {
-      res.status(404).json({ message: 'User not found' });
-    }
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+  if (user) {
+    res.status(200).json(user);
+  } else {
+    res.status(404);
+    throw new Error('User not found');
   }
-};
+});
 
 // @desc    Create a new user
 // @route   POST /api/users
 // @access  Private/Admin
-const createUser = async (req, res) => {
+const createUser = asyncHandler(async (req, res) => {
   const { name, email, password, role } = req.body;
 
   const userExists = await User.findOne({ email });
-
   if (userExists) {
-    return res.status(400).json({ message: 'User already exists' });
+    res.status(400);
+    throw new Error('User already exists');
   }
 
   const user = await User.create({
@@ -85,91 +68,82 @@ const createUser = async (req, res) => {
     email,
     password,
     role: role || 'user',
-    createdBy: req.user._id, // Audit track
+    createdBy: req.user._id,
   });
 
-  if (user) {
-    res.status(201).json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      status: user.status,
-    });
-  } else {
-    res.status(400).json({ message: 'Invalid user data' });
-  }
-};
+  res.status(201).json({
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    status: user.status,
+  });
+});
 
 // @desc    Update a user
 // @route   PUT /api/users/:id
 // @access  Private/Admin/Manager
-const updateUser = async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id);
+const updateUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
 
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    // Security check: Manager cannot update Admin users
-    if (req.user.role === 'manager' && user.role === 'admin') {
-      return res.status(403).json({ message: 'Managers cannot modify Admin accounts' });
-    }
-
-    user.name = req.body.name || user.name;
-    user.email = req.body.email || user.email;
-    user.role = req.body.role || user.role;
-    user.status = req.body.status || user.status;
-    user.updatedBy = req.user._id; // Audit track
-
-    if (req.body.password) {
-      user.password = req.body.password;
-    }
-
-    const updatedUser = await user.save();
-
-    res.status(200).json({
-      _id: updatedUser._id,
-      name: updatedUser.name,
-      email: updatedUser.email,
-      role: updatedUser.role,
-      status: updatedUser.status,
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
   }
-};
+
+  // Security check: Manager cannot update Admin users
+  if (req.user.role === 'manager' && user.role === 'admin') {
+    res.status(403);
+    throw new Error('Managers cannot modify Admin accounts');
+  }
+
+  user.name = req.body.name || user.name;
+  user.email = req.body.email || user.email;
+  user.role = req.body.role || user.role;
+  user.status = req.body.status || user.status;
+  user.updatedBy = req.user._id;
+
+  if (req.body.password) {
+    user.password = req.body.password;
+  }
+
+  const updatedUser = await user.save();
+
+  res.status(200).json({
+    _id: updatedUser._id,
+    name: updatedUser.name,
+    email: updatedUser.email,
+    role: updatedUser.role,
+    status: updatedUser.status,
+  });
+});
 
 // @desc    Deactivate user (Soft Delete)
 // @route   DELETE /api/users/:id
 // @access  Private/Admin
-const deleteUser = async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id);
+const deleteUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
 
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    // Prevent deleting self
-    if (user._id.toString() === req.user._id.toString()) {
-      return res.status(400).json({ message: 'You cannot deactivate your own account' });
-    }
-
-    user.status = 'inactive';
-    await user.save();
-
-    res.status(200).json({ message: 'User deactivated successfully' });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
   }
-};
+
+  if (user._id.toString() === req.user._id.toString()) {
+    res.status(400);
+    throw new Error('You cannot deactivate your own account');
+  }
+
+  user.status = 'inactive';
+  await user.save();
+
+  res.status(200).json({ message: 'User deactivated successfully' });
+});
 
 // @desc    Get user profile (Self)
 // @route   GET /api/users/profile
 // @access  Private
-const getUserProfile = async (req, res) => {
+const getUserProfile = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
 
   if (user) {
@@ -181,14 +155,15 @@ const getUserProfile = async (req, res) => {
       status: user.status,
     });
   } else {
-    res.status(404).json({ message: 'User not found' });
+    res.status(404);
+    throw new Error('User not found');
   }
-};
+});
 
 // @desc    Update user profile (Self)
 // @route   PUT /api/users/profile
 // @access  Private
-const updateUserProfile = async (req, res) => {
+const updateUserProfile = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
 
   if (user) {
@@ -209,9 +184,10 @@ const updateUserProfile = async (req, res) => {
       token: req.headers.authorization.split(' ')[1],
     });
   } else {
-    res.status(404).json({ message: 'User not found' });
+    res.status(404);
+    throw new Error('User not found');
   }
-};
+});
 
 module.exports = {
   getUsers,
