@@ -49,6 +49,25 @@ const getUsers = async (req, res) => {
   }
 };
 
+// @desc    Get user by ID
+// @route   GET /api/users/:id
+// @access  Private/Admin/Manager
+const getUserById = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id)
+      .populate('createdBy', 'name')
+      .populate('updatedBy', 'name');
+
+    if (user) {
+      res.status(200).json(user);
+    } else {
+      res.status(404).json({ message: 'User not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // @desc    Create a new user
 // @route   POST /api/users
 // @access  Private/Admin
@@ -66,6 +85,7 @@ const createUser = async (req, res) => {
     email,
     password,
     role: role || 'user',
+    createdBy: req.user._id, // Audit track
   });
 
   if (user) {
@@ -101,6 +121,7 @@ const updateUser = async (req, res) => {
     user.email = req.body.email || user.email;
     user.role = req.body.role || user.role;
     user.status = req.body.status || user.status;
+    user.updatedBy = req.user._id; // Audit track
 
     if (req.body.password) {
       user.password = req.body.password;
@@ -197,6 +218,7 @@ module.exports = {
   createUser,
   updateUser,
   deleteUser,
+  getUserById,
   getUserProfile,
   updateUserProfile,
 };

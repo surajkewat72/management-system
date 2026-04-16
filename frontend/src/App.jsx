@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
+import UserDetail from './pages/UserDetail';
 import Profile from './pages/Profile';
 import DashboardLayout from './layouts/DashboardLayout';
 
@@ -38,6 +39,7 @@ const App = () => {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="users" element={<Users />} />
+            <Route path="users/:id" element={<UserDetail />} />
             <Route path="profile" element={<Profile />} />
           </Route>
 

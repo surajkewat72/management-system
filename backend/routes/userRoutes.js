@@ -22,6 +22,7 @@ router
 
 router
   .route('/:id')
+  .get(protect, authorize('admin', 'manager'), getUserById)
   .put(protect, authorize('admin', 'manager'), updateUser)
   .delete(protect, authorize('admin'), deleteUser);
 
