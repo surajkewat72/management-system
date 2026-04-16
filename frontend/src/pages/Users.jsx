@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import UserForm from '../components/UserForm';
 import {
   MagnifyingGlassIcon,
   PlusIcon,
@@ -10,6 +11,7 @@ import {
   EyeIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  CheckCircleIcon,
 } from '@heroicons/react/24/outline';
 
 const Users = () => {
@@ -17,6 +19,11 @@ const Users = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+
+  // Form State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
 
   // Filter & Pagination State
   const [page, setPage] = useState(1);
@@ -25,24 +32,24 @@ const Users = () => {
   const [role, setRole] = useState('');
   const [status, setStatus] = useState('');
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      setLoading(true);
-      try {
-        const { data } = await api.get('/users', {
-          params: { page, search, role, status },
-        });
-        setUsers(data.users);
-        setPages(data.pages);
-        setError('');
-      } catch (err) {
-        setError('Failed to fetch users. Please try again.');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const { data } = await api.get('/users', {
+        params: { page, search, role, status },
+      });
+      setUsers(data.users);
+      setPages(data.pages);
+      setError('');
+    } catch (err) {
+      setError('Failed to fetch users. Please try again.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     const debounceTimer = setTimeout(fetchUsers, 500);
     return () => clearTimeout(debounceTimer);
   }, [page, search, role, status]);
@@ -53,8 +60,47 @@ const Users = () => {
     }
   };
 
+  const handleAddUser = () => {
+    setSelectedUser(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEditUser = (user) => {
+    setSelectedUser(user);
+    setIsModalOpen(true);
+  };
+
+  const handleFormSuccess = () => {
+    setIsModalOpen(false);
+    setSelectedUser(null);
+    fetchUsers();
+    setSuccessMessage(selectedUser ? 'User updated successfully!' : 'User created successfully!');
+    setTimeout(() => setSuccessMessage(''), 3000);
+  };
+
+  const handleDeleteUser = async (id) => {
+    if (window.confirm('Are you sure you want to deactivate this user?')) {
+      try {
+        await api.delete(`/users/${id}`);
+        fetchUsers();
+        setSuccessMessage('User deactivated successfully');
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } catch (err) {
+        setError(err.response?.data?.message || 'Failed to deactivate user');
+      }
+    }
+  };
+
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in pb-10">
+      {/* Toast Notification */}
+      {successMessage && (
+        <div className="fixed top-4 right-4 z-[100] bg-green-600 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-2 animate-scale-up">
+          <CheckCircleIcon className="h-5 w-5" />
+          <span className="font-bold">{successMessage}</span>
+        </div>
+      )}
+
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -62,7 +108,10 @@ const Users = () => {
           <p className="text-sm text-gray-500 dark:text-gray-400">Manage your organization's users and their permissions.</p>
         </div>
         {currentUser?.role === 'admin' && (
-          <button className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-blue-500/30 active:scale-95">
+          <button 
+            onClick={handleAddUser}
+            className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-blue-500/30 active:scale-95"
+          >
             <PlusIcon className="h-5 w-5" />
             Create User
           </button>
@@ -168,14 +217,27 @@ const Users = () => {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
-                        <button className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all" title="View">
+                        <button 
+                          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all" 
+                          title="View"
+                        >
                           <EyeIcon className="h-5 w-5" />
                         </button>
-                        <button className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-all" title="Edit">
+                        <button 
+                          disabled={(currentUser?.role === 'manager' && u.role === 'admin')}
+                          onClick={() => handleEditUser(u)}
+                          className={`p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-all ${(currentUser?.role === 'manager' && u.role === 'admin') ? 'opacity-30 cursor-not-allowed' : ''}`} 
+                          title="Edit"
+                        >
                           <PencilSquareIcon className="h-5 w-5" />
                         </button>
                         {currentUser?.role === 'admin' && (
-                          <button className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all" title="Deactivate">
+                          <button 
+                            disabled={u._id === currentUser?._id}
+                            onClick={() => handleDeleteUser(u._id)}
+                            className={`p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all ${u._id === currentUser?._id ? 'opacity-30 cursor-not-allowed' : ''}`} 
+                            title="Deactivate"
+                          >
                             <TrashIcon className="h-5 w-5" />
                           </button>
                         )}
@@ -217,6 +279,19 @@ const Users = () => {
           </div>
         </div>
       </div>
+
+      {/* User Form Modal */}
+      {isModalOpen && (
+        <UserForm
+          initialData={selectedUser}
+          currentUser={currentUser}
+          onSuccess={handleFormSuccess}
+          onCancel={() => {
+            setIsModalOpen(false);
+            setSelectedUser(null);
+          }}
+        />
+      )}
     </div>
   );
 };
