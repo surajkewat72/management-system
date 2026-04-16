@@ -48,11 +48,17 @@ const loginUser = async (req, res) => {
   const user = await User.findOne({ email }).select('+password');
 
   if (user && (await user.matchPassword(password))) {
+    // Check if user is active
+    if (user.status !== 'active') {
+      return res.status(403).json({ message: 'Account is inactive. Please contact admin.' });
+    }
+
     res.json({
       _id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
+      status: user.status,
       token: generateToken(user._id),
     });
   } else {
