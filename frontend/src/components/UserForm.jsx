@@ -129,7 +129,7 @@ const UserForm = ({ initialData, onSuccess, onCancel, currentUser }) => {
               </label>
               <input
                 type="email"
-                placeholder="alex@example.com"
+                placeholder="alex@gmail.com"
                 className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700/50 border ${validationErrors.email ? 'border-red-500' : 'border-gray-200 dark:border-gray-600'} rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all dark:text-white`}
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}

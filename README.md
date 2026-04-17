@@ -8,17 +8,17 @@ A modern, full-stack MERN application for managing users, roles, and permissions
 > Use the following credentials to access the system:
 
 ### Administrator Access
-- **Email**: `arjun@example.com`
+- **Email**: `arjun@gmail.com`
 - **Password**: `password123`
 - **Role**: Full access to dashboard and user management.
 
 ### Manager Access
-- **Email**: `priya@example.com`
+- **Email**: `priya@gmail.com`
 - **Password**: `password123`
 - **Role**: Limited access to user management.
 
 ### Standard User Access
-- **Email**: `amit@example.com`
+- **Email**: `amit@gmail.com`
 - **Password**: `password123`
 - **Role**: Profile view only.
 
@@ -41,7 +41,7 @@ A modern, full-stack MERN application for managing users, roles, and permissions
 
 - **Frontend**: React 19, Vite, Tailwind CSS v4, Lucide React, Axios.
 - **Backend**: Node.js, Express.js.
-- **Database**: MongoDB (via Mongoose).
+- **Database**: PostgreSQL (via Prisma ORM).
 - **Authentication**: JWT (JSON Web Tokens) with Secure HTTP-Only Cookies.
 - **Security**: Bcrypt.js for password hashing, Express-validator for input sanitization.
 
@@ -79,15 +79,16 @@ npm run install-all
 Create a `.env` file in the `backend/` directory:
 ```env
 PORT=5001
-MONGO_URI=mongodb://localhost:27017/user-mgmt-system
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DATABASE?sslmode=require
 JWT_SECRET=your_jwt_secret_key_here
 NODE_ENV=development
 ```
 
-### 5. Seed the Database
-Run the seeding script to create the initial admin and sample users:
+### 5. Setup Database & Seed
+Run the migrations and seeding script to create the initial admin and sample users:
 ```bash
 cd backend
+npx prisma migrate dev --name init
 node seed.js
 ```
 

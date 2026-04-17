@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const { prisma } = require('../config/db');
+const bcrypt = require('bcryptjs');
 const asyncHandler = require('../utils/asyncHandler');
 
 // @desc    Authenticate a user
@@ -8,10 +9,12 @@ const asyncHandler = require('../utils/asyncHandler');
 const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
-  const user = await User.findOne({ email }).select('+password');
+  const user = await prisma.user.findUnique({
+    where: { email },
+  });
 
-  if (user && (await user.matchPassword(password))) {
-    if (user.status !== 'active') {
+  if (user && (await bcrypt.compare(password, user.password))) {
+    if (user.status !== 'ACTIVE') {
       res.status(403);
       throw new Error('Account is inactive. Please contact admin.');
     }
@@ -20,9 +23,9 @@ const loginUser = asyncHandler(async (req, res) => {
       _id: user.id,
       name: user.name,
       email: user.email,
-      role: user.role,
-      status: user.status,
-      token: generateToken(user._id),
+      role: user.role.toLowerCase(),
+      status: user.status.toLowerCase(),
+      token: generateToken(user.id),
     });
   } else {
     res.status(401);

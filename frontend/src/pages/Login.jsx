@@ -61,7 +61,7 @@ const Login = () => {
                 autoComplete="email"
                 required
                 className="appearance-none relative block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 placeholder-gray-500 text-gray-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm transition-all dark:bg-gray-700"
-                placeholder="john@example.com"
+                placeholder="john@gmail.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />

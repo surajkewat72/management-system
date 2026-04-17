@@ -1,5 +1,4 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
 
 const protect = async (req, res, next) => {
   let token;
@@ -16,7 +15,22 @@ const protect = async (req, res, next) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
       // Get user from the token
-      req.user = await User.findById(decoded.id).select('-password');
+      const { prisma } = require('../config/db');
+      const user = await prisma.user.findUnique({
+        where: { id: decoded.id },
+      });
+
+      if (!user) {
+        res.status(401);
+        throw new Error('Not authorized');
+      }
+
+      // Map role to lowercase for frontend compatibility
+      req.user = {
+        ...user,
+        role: user.role.toLowerCase(),
+        status: user.status.toLowerCase(),
+      };
 
       next();
     } catch (error) {
