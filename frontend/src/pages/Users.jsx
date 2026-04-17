@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import UserForm from '../components/UserForm';
@@ -18,6 +18,7 @@ import {
 const Users = () => {
   const { user: currentUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -26,6 +27,17 @@ const Users = () => {
   // Form State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+
+  useEffect(() => {
+    if (location.state?.openCreateModal || location.pathname === '/create-user') {
+      handleAddUser();
+      // Clear state and update URL to /users after opening to prevent re-triggering
+      window.history.replaceState({}, document.title);
+      if (location.pathname === '/create-user') {
+        navigate('/users', { replace: true });
+      }
+    }
+  }, [location.state, location.pathname]);
 
   // Filter & Pagination State
   const [page, setPage] = useState(1);

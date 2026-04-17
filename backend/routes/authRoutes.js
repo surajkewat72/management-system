@@ -8,7 +8,6 @@ const {
 const { protect } = require('../middleware/authMiddleware');
 const { registerSchema, loginSchema } = require('../middleware/validators');
 
-router.post('/register', registerSchema, registerUser);
 router.post('/login', loginSchema, loginUser);
 router.get('/me', protect, getMe);
 

@@ -42,7 +42,10 @@ const DashboardLayout = () => {
         <div className="h-full flex flex-col">
           {/* Logo Section */}
           <div className="p-6 flex items-center justify-between">
-            <h1 className="text-xl font-extrabold text-blue-600 tracking-tight">UMS Admin</h1>
+            <h1 className="text-xl font-extrabold text-blue-600 tracking-tight flex items-center gap-2">
+              <span className="w-2 h-6 bg-blue-600 rounded-full"></span>
+              {user?.role === 'admin' || user?.role === 'manager' ? 'UMS Admin' : 'UMS Portal'}
+            </h1>
             <button
               onClick={() => setIsSidebarOpen(false)}
               className="lg:hidden p-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
