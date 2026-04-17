@@ -25,6 +25,13 @@ const errorHandler = (err, req, res, next) => {
     });
   }
 
+  // Handle Prisma "Table does not exist" error
+  if (err.code === 'P2021') {
+    return res.status(503).json({
+      message: 'System initialization incomplete. Please run database setup (sync schema and seed).',
+    });
+  }
+
   // Default error
   const statusCode = err.statusCode || res.statusCode === 200 ? 500 : res.statusCode;
   
